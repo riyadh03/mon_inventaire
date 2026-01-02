@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml" 
+            fx:controller="com.monsite.inventaire.controller.MainController" prefWidth="800" prefHeight="600">
+
+    <!-- Barre de menu -->
+    <top>
+        <MenuBar>
+            <Menu text="Produits">
+                <MenuItem text="Voir tous les produits" onAction="#showProductTable"/>
+                <MenuItem text="Ajouter un produit" onAction="#showProductForm"/>
+            </Menu>
+            <Menu text="Utilisateurs">
+                <MenuItem text="Gérer les utilisateurs" onAction="#showUserView"/>
+            </Menu>
+            <Menu text="Quitter">
+                <MenuItem text="Quitter" onAction="#quitApp"/>
+            </Menu>
+        </MenuBar>
+    </top>
+
+    <!-- Contenu central -->
+    <center>
+        <StackPane fx:id="contentPane" />
+    </center>
+
+</BorderPane>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.monsite.inventaire.controller.UserController" spacing="10" padding="10">
+
+    <Label text="Gestion des utilisateurs" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <TableView fx:id="userTable" prefHeight="300">
+        <columns>
+            <TableColumn text="ID" fx:id="idColumn"/>
+            <TableColumn text="Nom" fx:id="nameColumn"/>
+            <TableColumn text="Préfère Vegan" fx:id="veganColumn"/>
+        </columns>
+    </TableView>
+
+    <HBox spacing="10">
+        <Button text="Ajouter" onAction="#handleAddUser"/>
+        <Button text="Modifier" onAction="#handleEditUser"/>
+        <Button text="Supprimer" onAction="#handleDeleteUser"/>
+    </HBox>
+</VBox>

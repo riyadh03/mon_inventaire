@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.*?>
+
+<GridPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml"
+          fx:controller="com.monsite.inventaire.controller.ProductFormController"
+          hgap="10" vgap="10" padding="10">
+
+    <Label text="Code:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+    <TextField fx:id="codeField" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+    <Label text="Nom:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+    <TextField fx:id="nameField" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+    <Label text="Marque:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+    <TextField fx:id="brandField" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+    <Label text="Catégorie:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+    <TextField fx:id="categoryField" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+    <Label text="Quantité:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+    <TextField fx:id="quantityField" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+
+    <Label text="Nutri-Score:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+    <TextField fx:id="nutriScoreField" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+
+    <Label text="Eco-Score:" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+    <TextField fx:id="ecoScoreField" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+	
+	<Label text="Pays d'origine:" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+	<TextField fx:id="originsCountryField" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+	
+    <!-- Décaler le bouton -->
+	<Button text="Enregistrer" GridPane.rowIndex="8" GridPane.columnIndex="1" onAction="#handleSave"/>
+</GridPane>

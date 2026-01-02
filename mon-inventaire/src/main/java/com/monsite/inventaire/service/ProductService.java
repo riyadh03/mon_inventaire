@@ -69,6 +69,55 @@ public class ProductService {
             return false;
         }
     }
+    
+    /**
+     * Importe depuis API et sauvegarde
+     */
+    public Product importAndSave(String barcode, double price, int quantity) 
+            throws Exception {
+        
+        // 1. Vérifier si produit existe déjà
+        Product existing = productDAO.findByCode(barcode);
+        if (existing != null) {
+            throw new Exception("Produit existe déjà: " + existing.getName());
+        }
+        
+        // 2. Importer depuis API
+        Product imported = apiService.importProduct(barcode);
+        
+        // 3. Compléter avec données admin
+        imported.setPrice(price);
+        imported.setQuantity(quantity);
+        
+        // 4. Sauvegarder en DB
+        productDAO.save(imported);
+        
+        System.out.println("✅ Produit importé et sauvegardé: " + imported.getName());
+        return imported;
+    }
+    
+    /**
+     * Décrémente le stock après commande
+     */
+    public boolean decreaseStock(String productCode, int quantity) {
+        Product product = productDAO.findByCode(productCode);
+        if (product == null || product.getQuantity() < quantity) {
+            return false;
+        }
+        
+        product.setQuantity(product.getQuantity() - quantity);
+        productDAO.update(product);
+        return true;
+    }
+    
+    /**
+     * Vérifie disponibilité
+     */
+    public boolean isAvailable(String productCode, int quantity) {
+        Product product = productDAO.findByCode(productCode);
+        return product != null && product.getQuantity() >= quantity;
+    }
+}
 
    
 }
