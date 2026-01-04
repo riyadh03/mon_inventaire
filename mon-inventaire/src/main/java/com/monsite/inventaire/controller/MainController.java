@@ -1,38 +1,48 @@
 package com.monsite.inventaire.controller;
 
-import java.io.IOException;
-
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
-import javafx.application.Platform;
+import java.io.IOException;
 
 public class MainController {
-
+    
+    @FXML private StackPane contentPane;
+    @FXML private Label statusLabel;
+    
     @FXML
-    private StackPane contentPane;
-
-    @FXML
-    private void showProductTable() throws IOException {
-        Parent view = FXMLLoader.load(getClass().getResource("/view/ProductTableView.fxml"));
-        contentPane.getChildren().setAll(view);
+    public void initialize() {
+        statusLabel.setText("Système initialisé - Prêt");
     }
-
+    
     @FXML
-    private void showProductForm() throws IOException {
-        Parent view = FXMLLoader.load(getClass().getResource("/view/ProductFormView.fxml"));
-        contentPane.getChildren().setAll(view);
+    private void showProductManagement() {
+        loadView("/fxml/admin/ProductManagement.fxml");
+        statusLabel.setText("Gestion des produits");
     }
-
+    
     @FXML
-    private void showUserView() throws IOException {
-        Parent view = FXMLLoader.load(getClass().getResource("/view/UserView.fxml"));
-        contentPane.getChildren().setAll(view);
+    private void showCommandManagement() {
+        loadView("/fxml/admin/CommandManagement.fxml");
+        statusLabel.setText("Gestion des commandes");
     }
-
+    
     @FXML
-    private void quitApp() {
-        Platform.exit();
+    private void showUserManagement() {
+        loadView("/fxml/admin/UserManagement.fxml");
+        statusLabel.setText("Gestion des clients");
+    }
+    
+    private void loadView(String fxmlPath) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent view = loader.load();
+            contentPane.getChildren().setAll(view);
+        } catch (IOException e) {
+            statusLabel.setText("Erreur: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

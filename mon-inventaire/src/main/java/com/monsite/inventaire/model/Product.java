@@ -1,59 +1,89 @@
+// Product.java - Version avec annotations JPA
 package com.monsite.inventaire.model;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Entity
+@Table(name = "product") // Nom de la table en DB
 public class Product {
     
-    // Champs de base (API + notre logique)
+    @Id
+    @Column(name = "code", length = 50, nullable = false, unique = true)
     private String code;
+    
+    @Column(name = "name", length = 255, nullable = false)
     private String name;
+    
+    @Column(name = "brand", length = 255)
     private String brand;
+    
+    @Column(name = "category", length = 100)
     private String category;
-    private int quantity;           // En unités (pas grammes)
+    
+    @Column(name = "quantity")
+    private int quantity = 0;
+    
+    @Column(name = "price", columnDefinition = "DECIMAL(10,2) DEFAULT 0.00")
+    private double price = 0.0; 
+    
+    @Column(name = "origins_country", length = 100)
     private String originsCountry;
+    
+    @Column(name = "nutri_score", length = 1)
     private String nutriScore;
+    
+    @Column(name = "eco_score", length = 1)
     private String ecoScore;
     
-    // Nouveaux champs pour l'API
-    private double price;           // ❗ À saisir manuellement (API ne fournit pas)
-    private String imageUrl;        // URL de l'image
-    private String labels;          // "Vegan, Vegetarian, Gluten-Free"
-    private boolean isVegan;        // Calculé à partir des labels/ingrédients
-    private List<String> allergenTags = new ArrayList<>(); // ["peanuts", "sesame-seeds"]
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
     
-    // Relations
+    @Column(name = "labels", columnDefinition = "TEXT")
+    private String labels;
+    
+    @Column(name = "vegan")
+    private boolean vegan = false;
+    
+    // Allergen tags comme collection simple (stocké en JSON ou texte)
+    @ElementCollection
+    @CollectionTable(name = "product_allergen_tags", 
+                     joinColumns = @JoinColumn(name = "product_code"))
+    @Column(name = "allergen_tag")
+    private List<String> allergenTags = new ArrayList<>();
+    
+    // Relation avec NutritionalValue (OneToOne)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "nutritional_value_id")
     private NutritionalValue nutritionalValue;
+    
+    // Relation avec Ingredient (OneToMany)
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "product")
     private List<Ingredient> ingredients = new ArrayList<>();
-
-    // --- Constructors ---
-    public Product() {}
     
-    public Product(String code, String name, String brand) {
-        this.code = code;
-        this.name = name;
-        this.brand = brand;
+    // Constructeurs
+    public Product() {
+        // Constructeur par défaut requis par JPA
     }
     
-    // Constructeur pour import API
-    public Product(String code, String name, String brand, String category,
-                   String originsCountry, String nutriScore, String ecoScore,
-                   String imageUrl, String labels) {
+    public Product(String code, String name) {
         this.code = code;
         this.name = name;
-        this.brand = brand;
-        this.category = category;
-        this.originsCountry = originsCountry;
-        this.nutriScore = nutriScore;
-        this.ecoScore = ecoScore;
-        this.imageUrl = imageUrl;
-        this.labels = labels;
-        this.isVegan = labels != null && labels.toLowerCase().contains("vegan");
-        this.quantity = 0; // Par défaut
-        this.price = 0.0;  // À définir manuellement
     }
     
-    // --- Getters and Setters (ajouter les nouveaux) ---
+    // Getters et Setters (TOUS)
     public String getCode() { return code; }
     public void setCode(String code) { this.code = code; }
     
@@ -67,7 +97,14 @@ public class Product {
     public void setCategory(String category) { this.category = category; }
     
     public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
+    public void setQuantity(int quantity) { 
+        if (quantity >= 0) this.quantity = quantity; 
+    }
+    
+    public double getPrice() { return price; }
+    public void setPrice(double price) { 
+        if (price >= 0) this.price = price; 
+    }
     
     public String getOriginsCountry() { return originsCountry; }
     public void setOriginsCountry(String originsCountry) { this.originsCountry = originsCountry; }
@@ -78,82 +115,51 @@ public class Product {
     public String getEcoScore() { return ecoScore; }
     public void setEcoScore(String ecoScore) { this.ecoScore = ecoScore; }
     
-    // NOUVEAUX GETTERS/SETTERS
-    public double getPrice() { return price; }
-    public void setPrice(double price) { this.price = price; }
-    
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     
     public String getLabels() { return labels; }
     public void setLabels(String labels) { 
         this.labels = labels;
-        this.isVegan = labels != null && labels.toLowerCase().contains("vegan");
-    }
-    
-    public boolean isVegan() { return isVegan; }
-    public void setVegan(boolean vegan) { isVegan = vegan; }
-    
-    public List<String> getAllergenTags() { return allergenTags; }
-    public void setAllergenTags(List<String> allergenTags) { this.allergenTags = allergenTags; }
-    
-    public void addAllergenTag(String allergen) {
-        if (!allergenTags.contains(allergen)) {
-            allergenTags.add(allergen);
+        if (labels != null) {
+            this.vegan = labels.toLowerCase().contains("vegan");
         }
     }
     
-    public boolean containsAllergen(String allergen) {
-        return allergenTags.stream()
-            .anyMatch(tag -> tag.toLowerCase().contains(allergen.toLowerCase()));
+    public boolean isVegan() { return vegan; }
+    public void setVegan(boolean vegan) { this.vegan = vegan; }
+    
+    public List<String> getAllergenTags() { return allergenTags; }
+    public void setAllergenTags(List<String> allergenTags) { 
+        this.allergenTags = allergenTags != null ? allergenTags : new ArrayList<>();
     }
     
-    // Relations existantes
     public NutritionalValue getNutritionalValue() { return nutritionalValue; }
     public void setNutritionalValue(NutritionalValue nutritionalValue) { 
         this.nutritionalValue = nutritionalValue; 
     }
     
     public List<Ingredient> getIngredients() { return ingredients; }
-    public void setIngredients(List<Ingredient> ingredients) { this.ingredients = ingredients; }
+    public void setIngredients(List<Ingredient> ingredients) { 
+        this.ingredients = ingredients != null ? ingredients : new ArrayList<>();
+    }
     
+    // Méthodes utilitaires
     public void addIngredient(Ingredient ingredient) {
-        this.ingredients.add(ingredient);
+        if (ingredient != null) {
+            ingredient.setProduct(this);
+            ingredients.add(ingredient);
+        }
     }
     
-    // --- Business Methods ---
-    public boolean isSafeForUser(User user) {
-        // 1. Vérifier allergies
-        if (user != null && user.getAllergies() != null) {
-            for (Allergen userAllergen : user.getAllergies()) {
-                if (containsAllergen(userAllergen.getName())) {
-                    return false;
-                }
-            }
-        }
-        
-        // 2. Vérifier vegan
-        if (user != null && user.isPrefersVegan() && !isVegan) {
-            return false;
-        }
-        
-        return true;
-    }
-    
-    public double getTotalNutritionalValue(String type) {
-        if (nutritionalValue == null) return 0.0;
-        
-        switch(type.toLowerCase()) {
-            case "energy": return nutritionalValue.getEnergy() * quantity / 100.0;
-            case "sugars": return nutritionalValue.getSugars() * quantity / 100.0;
-            case "proteins": return nutritionalValue.getProteins() * quantity / 100.0;
-            default: return 0.0;
+    public void addAllergenTag(String tag) {
+        if (tag != null && !allergenTags.contains(tag)) {
+            allergenTags.add(tag);
         }
     }
     
     @Override
     public String toString() {
-        return String.format("%s - %s (%.2f€, Nutri:%s, Vegan:%s)", 
-            code, name, price, nutriScore, isVegan);
+        return String.format("%s - %s (Stock: %d, Prix: %.2f€)", code, name, quantity, price);
     }
 }

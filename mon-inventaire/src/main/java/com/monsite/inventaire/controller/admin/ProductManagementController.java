@@ -10,6 +10,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
 import java.util.List;
 
 public class ProductManagementController {
@@ -29,6 +30,8 @@ public class ProductManagementController {
     @FXML private ComboBox<Product> searchResultsCombo;
     @FXML private Button importButton;
     @FXML private Label searchStatusLabel;
+    @FXML private VBox apiResultsContainer; // ⚠️ AJOUTÉ
+    @FXML private Label statsLabel; // ⚠️ AJOUTÉ
     
     // === COMPOSANTS DÉTAILS PRODUIT ===
     @FXML private ImageView productImageView;
@@ -59,18 +62,29 @@ public class ProductManagementController {
         setupSearchCombo();
         loadProducts();
         clearForm();
+        
+        // ⚠️ AJOUTÉ: Initialiser la visibilité du container API
+        apiResultsContainer.setVisible(false);
+        apiResultsContainer.setManaged(false);
+        
+        // ⚠️ AJOUTÉ: Gérer la sélection dans le ComboBox
+        searchResultsCombo.getSelectionModel().selectedItemProperty().addListener((obs, old, newVal) -> {
+            if (newVal != null) {
+                apiResultsContainer.setVisible(true);
+                apiResultsContainer.setManaged(true);
+            }
+        });
     }
     
     private void setupTable() {
         // Configurer les colonnes
-    	codeColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getCode()));
+        codeColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getCode()));
         nameColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getName()));
         brandColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getBrand()));
         categoryColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getCategory()));
         quantityColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue().getQuantity()));
         priceColumn.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue().getPrice()));
         nutriScoreColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getNutriScore()));
-        
         
         // Sélection tableau -> afficher détails
         productTable.getSelectionModel().selectedItemProperty().addListener(
@@ -88,6 +102,7 @@ public class ProductManagementController {
             }
         });
         
+        // ⚠️ CORRIGÉ: Pas de paramètre apiProduct
         searchResultsCombo.setOnAction(e -> {
             Product selected = searchResultsCombo.getSelectionModel().getSelectedItem();
             if (selected != null) {
@@ -98,11 +113,19 @@ public class ProductManagementController {
     
     private void loadProducts() {
         productTable.setItems(productService.getAllProducts());
+        updateStatsLabel(); // ⚠️ AJOUTÉ
+    }
+    
+    // ⚠️ NOUVELLE MÉTHODE: Mettre à jour les statistiques
+    private void updateStatsLabel() {
+        int count = productService.getProductCount();
+        double value = productService.getInventoryValue();
+        statsLabel.setText(String.format("Produits: %d | Valeur totale: %.2f€", count, value));
     }
     
     // === GESTION RECHERCHE API ===
     @FXML
-    private void handleSearch() {
+    public void handleSearch() {
         String searchTerm = searchField.getText().trim();
         if (searchTerm.isEmpty()) return;
         
@@ -115,15 +138,16 @@ public class ProductManagementController {
                 
                 javafx.application.Platform.runLater(() -> {
                     searchResultsCombo.getItems().setAll(results);
-                    searchResultsCombo.setVisible(!results.isEmpty());
                     
                     if (results.isEmpty()) {
                         searchStatusLabel.setText("❌ Aucun résultat");
-                    } else if (results.size() == 1) {
-                        searchStatusLabel.setText("✅ 1 produit trouvé");
-                        searchResultsCombo.getSelectionModel().select(0);
+                        apiResultsContainer.setVisible(false);
+                        apiResultsContainer.setManaged(false);
                     } else {
-                        searchStatusLabel.setText("✅ " + results.size() + " produits trouvés");
+                        searchStatusLabel.setText("✅ " + results.size() + " produit(s) trouvé(s)");
+                        apiResultsContainer.setVisible(true);
+                        apiResultsContainer.setManaged(true);
+                        searchResultsCombo.getSelectionModel().select(0);
                     }
                     importButton.setDisable(false);
                 });
@@ -135,6 +159,15 @@ public class ProductManagementController {
                 });
             }
         }).start();
+    }
+    
+    // ⚠️ NOUVELLE MÉTHODE: Gérer l'import
+    @FXML
+    public void handleImport() {
+        Product selected = searchResultsCombo.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            populateFormFromAPI(selected);
+        }
     }
     
     private void populateFormFromAPI(Product apiProduct) {
@@ -179,9 +212,10 @@ public class ProductManagementController {
         priceField.requestFocus();
     }
     
+
     // === CRUD PRODUITS ===
     @FXML
-    private void handleSave() {
+    public void handleSave() {
         try {
             // Validation
             String code = codeField.getText().trim();
@@ -200,48 +234,13 @@ public class ProductManagementController {
                 throw new IllegalArgumentException("Prix > 0 et quantité ≥ 0");
             }
             
-            Product product;
-            
+            // 🔧 CORRECTION: Utiliser addProduct() ou updateProduct() selon le cas
             if (currentProduct == null) {
-                // Nouveau produit
-                product = new Product();
-                product.setCode(code);
-                product.setName(name);
-                product.setBrand(brandField.getText());
-                product.setCategory(categoryField.getText());
-                product.setOriginsCountry(originsField.getText());
-                product.setNutriScore(nutriScoreField.getText());
-                product.setEcoScore(ecoScoreField.getText());
-                product.setPrice(price);
-                product.setQuantity(quantity);
-                
-                // Ajouter données API si disponibles
-                Product apiProduct = searchResultsCombo.getSelectionModel().getSelectedItem();
-                if (apiProduct != null) {
-                    product.setImageUrl(apiProduct.getImageUrl());
-                    product.setLabels(apiProduct.getLabels());
-                    product.setVegan(apiProduct.isVegan());
-                    product.setNutritionalValue(apiProduct.getNutritionalValue());
-                    product.getIngredients().addAll(apiProduct.getIngredients());
-                    product.getAllergenTags().addAll(apiProduct.getAllergenTags());
-                }
-                
-                productService.addProduct(product);
-                showAlert("Succès", "Produit ajouté", Alert.AlertType.INFORMATION);
-                
+                // NOUVEAU produit
+                handleAddProduct(code, name, price, quantity);
             } else {
-                // Modification
-                currentProduct.setName(name);
-                currentProduct.setBrand(brandField.getText());
-                currentProduct.setCategory(categoryField.getText());
-                currentProduct.setOriginsCountry(originsField.getText());
-                currentProduct.setNutriScore(nutriScoreField.getText());
-                currentProduct.setEcoScore(ecoScoreField.getText());
-                currentProduct.setPrice(price);
-                currentProduct.setQuantity(quantity);
-                
-                productService.updateProduct(currentProduct);
-                showAlert("Succès", "Produit mis à jour", Alert.AlertType.INFORMATION);
+                // MODIFICATION produit existant
+                handleUpdateProduct(name, price, quantity);
             }
             
             loadProducts();
@@ -254,8 +253,58 @@ public class ProductManagementController {
         }
     }
     
+    // 🔧 NOUVELLE MÉTHODE: Ajouter un nouveau produit
+    private void handleAddProduct(String code, String name, double price, int quantity) {
+        Product product = new Product();
+        product.setCode(code);
+        product.setName(name);
+        product.setBrand(brandField.getText());
+        product.setCategory(categoryField.getText());
+        product.setOriginsCountry(originsField.getText());
+        product.setNutriScore(nutriScoreField.getText());
+        product.setEcoScore(ecoScoreField.getText());
+        product.setPrice(price);
+        product.setQuantity(quantity);
+        
+        // Ajouter données API si disponibles
+        Product apiProduct = searchResultsCombo.getSelectionModel().getSelectedItem();
+        if (apiProduct != null) {
+            copyApiDataToProduct(apiProduct, product);
+        }
+        
+        // 🔧 CORRECTION: Utiliser addProduct() pour nouveau produit
+        productService.addProduct(product);
+        showAlert("Succès", "Produit ajouté", Alert.AlertType.INFORMATION);
+    }
+    
+    // 🔧 NOUVELLE MÉTHODE: Mettre à jour un produit existant
+    private void handleUpdateProduct(String name, double price, int quantity) {
+        currentProduct.setName(name);
+        currentProduct.setBrand(brandField.getText());
+        currentProduct.setCategory(categoryField.getText());
+        currentProduct.setOriginsCountry(originsField.getText());
+        currentProduct.setNutriScore(nutriScoreField.getText());
+        currentProduct.setEcoScore(ecoScoreField.getText());
+        currentProduct.setPrice(price);
+        currentProduct.setQuantity(quantity);
+        
+        // 🔧 CORRECTION: Utiliser updateProduct() pour modification
+        productService.updateProduct(currentProduct);
+        showAlert("Succès", "Produit mis à jour", Alert.AlertType.INFORMATION);
+    }
+    
+    // 🔧 NOUVELLE MÉTHODE UTILITAIRE: Copier données API
+    private void copyApiDataToProduct(Product source, Product target) {
+        target.setImageUrl(source.getImageUrl());
+        target.setLabels(source.getLabels());
+        target.setVegan(source.isVegan());
+        target.setNutritionalValue(source.getNutritionalValue());
+        target.setIngredients(source.getIngredients());
+        target.setAllergenTags(source.getAllergenTags());
+    }
+    
     @FXML
-    private void handleDelete() {
+    public void handleDelete() {
         Product selected = productTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Erreur", "Sélectionnez un produit à supprimer", Alert.AlertType.WARNING);
@@ -312,8 +361,8 @@ public class ProductManagementController {
             }
         }
     }
-    
-    private void clearForm() {
+    @FXML
+    public void clearForm() {
         currentProduct = null;
         codeField.clear();
         nameField.clear();

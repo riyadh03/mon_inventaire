@@ -1,123 +1,103 @@
+// ProductService.java - Version COMPLÈTE
 package com.monsite.inventaire.service;
 
+import com.monsite.inventaire.dao.ProductDAO;
 import com.monsite.inventaire.model.Product;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-import com.monsite.inventaire.dao.ProductDAO;
-import com.monsite.inventaire.exception.ProductNotFoundException;
-
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ProductService {
-
     private final ProductDAO productDAO;
     private final ObservableList<Product> observableProductList;
-
+    
     public ProductService() {
         this.productDAO = new ProductDAO();
         this.observableProductList = FXCollections.observableArrayList();
-        refreshFromDatabase(); // Charger initialement depuis DB
+        
+        System.out.println("✅ ProductService initialisé avec Hibernate");
+        refreshFromDatabase();
     }
-
+    
     public ObservableList<Product> getAllProducts() {
         return observableProductList;
     }
-
-    public void addProduct(Product product) {
+    
+    public void refreshFromDatabase() {
+        List<Product> products = productDAO.getAll();
+        observableProductList.setAll(products);
+        System.out.println("🔄 " + products.size() + " produits chargés");
+    }
+    
+    // ⚠️ CORRECTION: Méthode principale (utilise Hibernate save)
+    public void saveProduct(Product product) {
+        System.out.println("💾 Service: Sauvegarde " + product.getName());
         productDAO.save(product);
-        refreshFromDatabase(); // Rafraîchir la liste après ajout
-    }
-
-    public void deleteProduct(String code) throws ProductNotFoundException {
-        if (productDAO.findByCode(code) == null) {
-            throw new ProductNotFoundException("Produit introuvable pour suppression");
-        }
-        productDAO.delete(code);
-        refreshFromDatabase(); // Rafraîchir la liste après suppression
-    }
-
-    private void refreshFromDatabase() {
-        List<Product> dbProducts = productDAO.getAll();
-        observableProductList.setAll(dbProducts); // Mettre à jour l'ObservableList
-    }
-	
-    public Product getProduct(String code) throws ProductNotFoundException {
-        Product product = productDAO.findByCode(code);
-        if (product == null) {
-            throw new ProductNotFoundException("Produit avec le code " + code + " non trouvé");
-        }
-        return product;
-    }
-
-    public void updateProduct(Product product) throws ProductNotFoundException {
-        if (productDAO.findByCode(product.getCode()) == null) {
-            throw new ProductNotFoundException("Produit introuvable pour mise à jour");
-        }
-        productDAO.update(product);
+        refreshFromDatabase();
     }
     
- // ✅ Méthode de test pour vérifier la connexion
-    public boolean testConnection() {
-        try {
-            List<Product> products = productDAO.getAll();
-            System.out.println("✅ Service OK - " + products.size() + " produits trouvés");
-            return true;
-        } catch (Exception e) {
-            System.out.println("❌ Erreur Service: " + e.getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Importe depuis API et sauvegarde
-     */
-    public Product importAndSave(String barcode, double price, int quantity) 
-            throws Exception {
+    // ⚠️ CORRECTION: Alias pour addProduct (pour compatibilité)
+    public void addProduct(Product product) {
+        System.out.println("➕ Ajout nouveau produit: " + product.getName());
         
-        // 1. Vérifier si produit existe déjà
-        Product existing = productDAO.findByCode(barcode);
+        // Vérifier si existe déjà
+        Product existing = getProductByCode(product.getCode());
         if (existing != null) {
-            throw new Exception("Produit existe déjà: " + existing.getName());
+            throw new RuntimeException("Produit existe déjà: " + product.getCode());
         }
         
-        // 2. Importer depuis API
-        Product imported = apiService.importProduct(barcode);
-        
-        // 3. Compléter avec données admin
-        imported.setPrice(price);
-        imported.setQuantity(quantity);
-        
-        // 4. Sauvegarder en DB
-        productDAO.save(imported);
-        
-        System.out.println("✅ Produit importé et sauvegardé: " + imported.getName());
-        return imported;
+        productDAO.save(product); // Hibernate fera INSERT
+        refreshFromDatabase();
     }
     
-    /**
-     * Décrémente le stock après commande
-     */
-    public boolean decreaseStock(String productCode, int quantity) {
-        Product product = productDAO.findByCode(productCode);
-        if (product == null || product.getQuantity() < quantity) {
-            return false;
+    public void updateProduct(Product product) {
+        System.out.println("✏️ Mise à jour produit: " + product.getName());
+        
+        // Vérifier si existe
+        Product existing = getProductByCode(product.getCode());
+        if (existing == null) {
+            throw new RuntimeException("Produit non trouvé: " + product.getCode());
         }
         
-        product.setQuantity(product.getQuantity() - quantity);
-        productDAO.update(product);
-        return true;
+        productDAO.save(product); // Hibernate fera UPDATE (car existe)
+        refreshFromDatabase();
     }
     
-    /**
-     * Vérifie disponibilité
-     */
-    public boolean isAvailable(String productCode, int quantity) {
-        Product product = productDAO.findByCode(productCode);
-        return product != null && product.getQuantity() >= quantity;
+    public void deleteProduct(String code) {
+        System.out.println("🗑️ Service: Suppression " + code);
+        productDAO.delete(code);
+        refreshFromDatabase();
     }
-}
-
-   
+    
+    public Product getProductByCode(String code) {
+        return productDAO.findByCode(code);
+    }
+    
+    // Méthode pour obtenir l'énergie/calories
+    public double getProductEnergy(Product product) {
+        if (product.getNutritionalValue() != null) {
+            return product.getNutritionalValue().getEnergy(); // ou getCalories()
+        }
+        return 0.0;
+    }
+    
+    // Autres utilitaires
+    public int getProductCount() {
+        return observableProductList.size();
+    }
+    
+    public double getInventoryValue() {
+        return observableProductList.stream()
+            .mapToDouble(p -> p.getPrice() * p.getQuantity())
+            .sum();
+    }
+    
+    public List<Product> getLowStockProducts() { 
+    	return observableProductList
+    			.stream() 
+    			.filter(p -> p.getQuantity() < 10) 
+    			.collect(Collectors.toList()); 
+    	}
 }

@@ -1,10 +1,14 @@
+// DuplicateProductException.java
 package com.monsite.inventaire.exception;
 
-// Exception levée lorsqu'on tente d'ajouter un produit qui existe déjà
 public class DuplicateProductException extends Exception {
+    private static final long serialVersionUID = 1L; // ⚠️ AJOUTÉ
     
-    // Constructeur qui prend un message d'erreur
     public DuplicateProductException(String message) {
         super(message);
+    }
+    
+    public DuplicateProductException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

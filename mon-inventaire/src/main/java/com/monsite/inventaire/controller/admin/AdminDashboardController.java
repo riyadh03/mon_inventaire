@@ -37,7 +37,7 @@ public class AdminDashboardController {
     
     private void loadDashboardData() {
         // Statistiques produits
-        List<Product> products = productService.getAllProductsAsList();
+        List<Product> products = productService.getAllProducts();
         totalProductsLabel.setText(String.valueOf(products.size()));
         
         // Produits en faible stock

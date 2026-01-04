@@ -1,9 +1,14 @@
+// ProductNotFoundException.java
 package com.monsite.inventaire.exception;
 
-// Exception levée lorsqu'un produit recherché n'est pas trouvé
 public class ProductNotFoundException extends Exception {
+    private static final long serialVersionUID = 1L; // ⚠️ AJOUTÉ
     
     public ProductNotFoundException(String message) {
         super(message);
+    }
+    
+    public ProductNotFoundException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

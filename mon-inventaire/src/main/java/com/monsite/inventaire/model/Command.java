@@ -53,7 +53,7 @@ public class Command {
     public void setDate(LocalDate date) {
         this.date = date;
     }
-    S
+    
     public double getTotal() {
         return total;
     }
